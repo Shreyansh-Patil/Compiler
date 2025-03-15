@@ -1,3 +1,9 @@
-1 [ast.cpp] Add control-flow statements
-2 [valueCategories.txt] Add std::unique_ptr<> explanation
-3 [lexer.cpp] Helo ther
+[ ] Task 1: { Add control-flow statements }
+Location: [ /ast/ast.cpp ]
+
+[ ] Task 2: { Add std::unique_ptr<> explanation }
+Location: [ /ast/misc.txt ]
+
+[ ] Task 3: { Helo ther }
+Location: [ /lexer/lexer.cpp ]
+
