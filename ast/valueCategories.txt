@@ -1,0 +1,100 @@
+lvalue:
+a chunk of memory that can be modified and which persists in memory
+
+rvalue:
+a temporary value that exists for a short time
+
+For example,
+int x = y * 4;
+(y * 4) is an rvalue because it exists only until the calculation. It is deleted later.
+x is an lvalue, because it persists even after the instruction is finished executing.
+
+The implications of lvalue and rvalue are immense. We will talk about the significance in light of the following:
+1. const std::string& Name
+2. std::vector<int>&& Name
+3. std::move()
+
+1. const std::string& Name
+Before getting to know this, we must first understand std::move()
+
+std::move() transfers ownership of an rvalue from an lvalue to another lvalue (This is not entirely accurate but for the sake of understanding, keep this in mind)
+
+What does this mean? Consider:
+int x = 4;
+int&& y = std::move(x);
+
+What happened here?
+std::move(x) converts x from int -> rvalue reference, or more accurately
+it turns x from an lvalue to an rvalue reference
+then it moves the ownership from x to y
+
+See, int x = 4; defines a block of memory that owns the rvalue 4. This x is an lvalue because it is permanent.
+
+What is an rvalue reference?
+A reference to an rvalue, aka, an rvalue reference, extends the lifetime of an rvalue until this reference goes out of scope or gets deleted.
+Think of it like this. The ravlue exists as a temporary value in memory. A reference is defined to it so that we can re-use the value without having to create it multiple times. This is how an rvalue reference extends the lifetime of an rvalue.
+
+If the rvalue reference is deleted or goes out of scope, the rvalue is no more of use, and it gets released as well.
+
+std::move() converts this permanent block of memory (lvalue) into an rvalue reference. This implies that the lvalue and rvalue are no longer tightly bound.
+
+Converting the lvalue into an rvalue reference enables move semantics (if the type allows it).
+
+Since type int allows move semantics, the int becomes an rvalue reference and ownership of the rvalue it had is transferred to another rvalue reference.
+
+This transfer of ownership is specially useful when dealing with large structures, such as trees, graphs, large vectors, etc. because it avoids copying the entire structure. This saves time which is crucial in compilers.
+
+Consider,
+std::vector<int> vec(1e6, 28); // initialize vector of int of size 1e6
+std::vector<int> v = vec; // copies all 1e6 elements
+
+Doing &vec shares ownership, but it does not transfer it directly to the new rvalue reference.
+std::vector<int> v = &vec; // v is another name for vec. An alias if you will.
+
+To transfer ownership, we do the following:
+std::vector<int> v = std::move(vec); // makes vec an rvalue reference to its rvalue, then transfers ownership to v (lvalue)
+vec becomes an empty std::vector<int>
+
+1. const std::string& Name
+This syntax allows the function to accept both Reference of strings, and rvalue reference to strings. It is neutral to both.
+
+It is easy to read if the caller only provides a reference to the string Name.
+It captures an rvalue reference by the caller as well.
+
+For example, consider caller foo:
+
+std::string PassingString = "Some Value";
+foo(PassingString);
+
+the function foo accepts the string as follows:
+void foo (const std::string& str) {}
+
+Thus, in this case, it is like passing the string as reference. We ensure read-only operation on it.
+
+Now consider:
+foo(std::move(PassingString)); // passing rvalue reference
+
+foo still captures the rvalue, since const std::string& can be used for rvalue references as well.
+
+More formally,
+const std::string& can bind to lvalue and rvalue both.
+
+Why can std::string& not be used in this case? Becuase in C++, std::string& cannot bind to rvalues. This is because the compiler simply does not allow a mutable std::string& to hold a temporary rvalue.
+
+Why does the compiler not allow mutable std::string& to hold an rvalue? This is a design choice, with specific intent in mind.
+1. It allows safe reads from rvalues without accidently modifying them.
+2. It establishes a distinction between temporary and permanent values. rvalue != lvalue and vice-a-versa.
+
+Thus, the compiler has the following rules:
+1. std::string& -> lvalue reference
+    - used for shared ownership and
+    - copy without having to make unnecessary copies
+2. std::string&& -> rvalue reference
+    - used for enabling move semantics, aka ownership transfers (not possible with lvalues), and
+    - for perfect forwarding (preserve value categories in templates)
+3. const std::string& -> constant lvalue reference
+    - used for read-only rvalue reference operations (foo(std::move(str)))
+    - can avoid unnecessary copies for lvalue references (foo(str))
+
+
+// TODO: Add std::unique_ptr<> explanation
